@@ -3,8 +3,11 @@ const path = require('path')
 const utils = require('./utils')
 const config = require('../config')
 const vueLoaderConfig = require('./vue-loader.conf')
+const webpack = require('webpack')
+const px2rem = require('postcss-px2rem')
+const postcss = require('postcss')
 
-function resolve (dir) {
+function resolve(dir) {
   return path.join(__dirname, '..', dir)
 }
 
@@ -35,9 +38,17 @@ module.exports = {
     extensions: ['.js', '.vue', '.json'],
     alias: {
       'vue$': 'vue/dist/vue.esm.js',
-      '@': resolve('src'),
+      '@': resolve('src')
     }
   },
+  plugins: [
+    new webpack.LoaderOptionsPlugin({
+      // webpack 2.0之后， 此配置不能直接写在自定义配置项中， 必须写在此处
+      vue: {
+        postcss: [require('postcss-px2rem')({ remUnit: 37.5, propWhiteList: [] })]
+      }
+    })
+  ],
   module: {
     rules: [
       ...(config.dev.useEslint ? [createLintingRule()] : []),
@@ -45,6 +56,25 @@ module.exports = {
         test: /\.vue$/,
         loader: 'vue-loader',
         options: vueLoaderConfig
+      },
+      {
+        test: /\.css$/,
+        use: [
+          'vue-style-loader',
+          {
+            loader: 'css-loader',
+            options: {
+              // 开启 CSS Modules
+              modules: true,
+              // 自定义生成的类名
+              localIdentName: '[local]_[hash:base64:8]'
+            }
+          }
+        ]
+      },
+      {
+        test: /\.(css|less|scss)(\?.*)?$/,
+        loader: 'style-loader!css-loader!sass-loader!less-loader!postcss-loader'
       },
       {
         test: /\.js$/,
